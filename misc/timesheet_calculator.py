@@ -32,3 +32,6 @@ for line, day in zip(line_list, days):
         print(f'[{day}] Working time: {workday_duration}, Extra time: {working_duration - workday_duration}')
     else:
         print(f'[{day}] Working time: {working_duration}')
+
+
+print("Lunch and breaks already subtracted")
