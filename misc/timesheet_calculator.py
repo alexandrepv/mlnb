@@ -2,12 +2,12 @@ import time
 import re
 import datetime as dt
 
-file = open("times.txt", 'r')
+file = open(r"C:\Users\alexandre.vicente\Downloads\times.txt", 'r', encoding="utf8")
 
 days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 
 lunch_duration = dt.timedelta(minutes=45)
-workday_duration = dt.timedelta(hours=8)
+barda_limit = dt.timedelta(hours=2)
 
 file_content = file.read()
 line_list = re.split('\n', file_content)
@@ -16,7 +16,7 @@ line_list = [item for item in line_list if len(item) > 0]
 assert len(line_list) == len(days), '[ERROR] You need a list of 5 arrival/leaving times on the .txt file'
 
 for line, day in zip(line_list, days):
-    line_matches = re.search(r'(.*):(.*) - (.*):(.*)', line)
+    line_matches = re.search(r'(.*):(.*)-(.*):(.*)', line)
 
     # Start time
     start_timedelta = dt.timedelta(hours=int(line_matches.group(1)),
@@ -28,10 +28,10 @@ for line, day in zip(line_list, days):
     total_duration = leaving_timedelta - start_timedelta
     working_duration = total_duration - lunch_duration
 
-    if working_duration > workday_duration:
-        print(f'[{day}] Working time: {workday_duration}, Extra time: {working_duration - workday_duration}')
+    if working_duration > barda_limit:
+        print(f'[{day}] Barda Time: {barda_limit}, Extra time: {working_duration - barda_limit}')
     else:
-        print(f'[{day}] Working time: {working_duration}')
+        print(f'[{day}] Barda Time: {barda_limit}')
 
 
 print("Lunch and breaks already subtracted")
