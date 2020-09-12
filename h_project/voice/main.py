@@ -1,7 +1,22 @@
 import argparse
 import h_project.voice.game_database as game_database
+import pyAudioAnalysis as pyaudio
+from pyAudioAnalysis import audioAnalysis
+
 
 if __name__ == '__main__':
+
+    import matplotlib.pyplot as plt
+    from scipy.interpolate import splev, splrep
+    import numpy as np
+
+    x = np.linspace(0, 10, 10)
+    y = np.sin(x)
+    spl = splrep(x, y)
+    x2 = np.linspace(0, 10, 200)
+    y2 = splev(x2, spl)
+    plt.plot(x, y, 'o', x2, y2)
+    plt.show()
 
     # Step 0) Parse arguments
     parser = argparse.ArgumentParser(description='Process all voice files inside a folder')
@@ -27,7 +42,3 @@ if __name__ == '__main__':
     db.load(db_filepath)
 
     features = db.extract_audio_features()
-
-    g = 0
-
-

@@ -7,9 +7,11 @@ import xml.etree.ElementTree as ET
 import time
 import datetime
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.manifold import TSNE
+from sklearn.cluster import KMeans
 
 # Audio processing modules
 import librosa
@@ -137,15 +139,48 @@ class GameDB():
 
     def extract_audio_features(self, verbose=False):
 
-        n_fft = 1024  # frame length
-        n_mfcc = 40
 
-        # Count how many audio files are there
+        n_fft = 1024  # frame length
+        n_mfcc = 64
+
+        # Count how many intervals and what unique labels are in all
         num_intervals = 0
+        labels = []
+        where_to_get_data = []
         for audio in self.db['audio_files']:
             num_intervals += len(audio['intervals'])
+            for interval in audio['intervals']:
+                labels += interval['tags']
+                where_to_get_data.append((audio['filepath'],
+                                          interval['frame_start'],
+                                          interval['frame_stop']))
 
+        # Allocate memory for features and find unique labels
+        unique_labels = list(np.unique(labels))
+        labels_map = {l:i for i, l in enumerate(unique_labels)}
         features = np.ndarray((num_intervals, n_mfcc))
+        colors = np.ndarray((num_intervals,))
+
+        def onpick1(event):
+            if isinstance(event.artist, Line2D):
+                thisline = event.artist
+                xdata = thisline.get_xdata()
+                ydata = thisline.get_ydata()
+                ind = event.ind
+
+                first = where_to_get_data[ind[0]][0]
+                second = where_to_get_data[ind[0]][1]
+                third = where_to_get_data[ind[0]][2]
+
+                raw_signal, fs = sf.read(first)
+                interval_signal = raw_signal[second:third]
+
+                # Open file and Play audio
+                audio_16bit = (interval_signal*2**15).astype(np.int16)
+                sa.play_buffer(audio_16bit, 1, 2, fs)
+
+
+                print(f"[ {first} ] {labels[ind[0]]}: {second/fs:.5f} to {third/fs:.5f}")
 
         counter = 0
         for audio in self.db['audio_files']:
@@ -160,17 +195,14 @@ class GameDB():
 
                 interval_signal = raw_signal[a:b]
 
-                # Play audio
-                #audio_16bit = (interval_signal*2**15).astype(np.int16)
-                #sa.play_buffer(audio_16bit, 1, 2, fs)
-
-
                 X = fft(interval_signal, n_fft)
                 X_magnitude, X_phase = librosa.magphase(X)
                 mfccs = librosa.feature.mfcc(y=interval_signal, sr=fs, n_mfcc=n_mfcc)
                 X_magnitude_db = librosa.amplitude_to_db(X_magnitude)
 
                 mfccs_1d = np.mean(mfccs, axis=1)
+                mfccs_1d[0] = (b-a)/1000
+                colors[counter] = labels_map[interval['tags'][0]]
 
                 features[counter, :] = mfccs_1d
                 counter += 1
@@ -178,34 +210,46 @@ class GameDB():
                 if verbose:
                     plt.subplot(2, 2, 1)
                     plt.plot(interval_signal)
+                    plt.title('Raw signal')
                     plt.xlim(0, b-a+1)
                     plt.subplot(2, 2, 2)
                     plt.imshow(mfccs, aspect='auto', cmap='nipy_spectral')
-                    plt.title('MFCC')
+                    plt.title('MFCC over time')
                     plt.subplot(2, 2, 3)
                     plt.plot(mfccs_1d)
-                    plt.title('MFCC Sums')
+                    plt.title('Row sum of MFCC')
                     plt.subplot(2, 2, 4)
                     plt.plot(X_magnitude_db[0:int(n_fft / 2)])
                     plt.title('Fourier')
                     plt.xlim(0, n_fft/2)
                     plt.show()
 
-        x = StandardScaler().fit_transform(features)
+        X = StandardScaler().fit_transform(features)
 
-        X_embedded = TSNE(n_components=2).fit_transform(x)
-        plt.scatter(X_embedded[:, 0], X_embedded[:, 1])
-        plt.title('t-SNE')
+        X_tsne = TSNE(n_components=2).fit_transform(X)
+        kmeans = KMeans(n_clusters=12, random_state=0).fit(X)
+        labels = kmeans.predict(X)
+
+        fig, ax = plt.subplots()
+        ax.set_title('Groups of audio files', picker=True)
+        ax.set_ylabel('Component 2', picker=True)
+        ax.set_xlabel('Component 1')
+        plt.scatter(X_tsne[:, 0], X_tsne[:, 1], c=labels, cmap='nipy_spectral')
+        # line, = ax.plot(X_tsne[:, 0],X_tsne[:, 1], 'o', picker=5)
+
+        fig.canvas.mpl_connect('pick_event', onpick1)
+        plt.title('Audio grouping representation in t-SNE')
+        #plt.legend(unique_labels)
         plt.show()
 
-        pca = PCA(n_components=2)
-        pc = pca.fit_transform(x)
-        plt.scatter(pc[:, 0], pc[:, 1])
-        plt.title('PCA')
-        plt.show()
+        #pca = PCA(n_components=2)
+        #pc = pca.fit_transform(x)
+        #plt.scatter(pc[:, 0], pc[:, 1])
+        #plt.title('PCA')
+        #plt.show()
 
-        plt.imshow(features.transpose(), cmap='nipy_spectral')
-        plt.show()
+        #plt.imshow(features.transpose(), cmap='nipy_spectral')
+        #plt.show()
 
         g = 0
 
