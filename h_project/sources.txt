@@ -1,0 +1,8 @@
+Motion Synthesis:
+https://paperswithcode.com/task/motion-synthesis/codeless
+
+Sound Classificaiton:
+
+
+Voice Synthesis:
+https://heartbeat.fritz.ai/a-2019-guide-to-speech-synthesis-with-deep-learning-630afcafb9dd
