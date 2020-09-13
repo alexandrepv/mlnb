@@ -1,8 +1,5 @@
 import argparse
-import h_project.voice.game_database as game_database
-import pyAudioAnalysis as pyaudio
-from pyAudioAnalysis import audioAnalysis
-
+import h_project.voice_processing.old_scripts.game_database as game_database
 
 if __name__ == '__main__':
 
@@ -33,8 +30,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     xml_fpath = r"I:\Hentai_Game_Project_Resources\game_resource_archive\game_0708\game.xml"
-    audacity_fpath = r'G:\Dropbox\Projects\Hentai Game Project\Development\voice_processing\manually_labelled_files\game_0708\audacity_labels.json'
-    db_filepath = r'G:\Dropbox\Projects\Hentai Game Project\Development\voice_processing\manually_labelled_files\game_0708\game_db.json'
+    audacity_fpath = r'D:\Dropbox\Projects\Hentai Game Project\Development\voice_processing\manually_labelled_files\game_0708\audacity_labels.json'
+    db_filepath = r'D:\Dropbox\Projects\Hentai Game Project\Development\voice_processing\manually_labelled_files\game_0708\game_db.json'
 
     db = game_database.GameDB(xml_fpath)
     #db.load_audacity_json(audacity_fpath)

@@ -61,7 +61,7 @@ def find_intervals(valid_windows):
     return intervals
 
 
-def split_audio_into_intervals(raw_signal, fs, method='stft'):
+def split_audio_into_intervals(raw_signal, fs, spectogram_thres=0.0012):
 
     """
 
@@ -74,7 +74,6 @@ def split_audio_into_intervals(raw_signal, fs, method='stft'):
     # Define constants
     windows_size = 512
     spectogram_scale = 750      # TODO: Make these two numbers one!
-    spectogram_thres = 0.0012
 
     num_samples = len(raw_signal)
 
@@ -116,7 +115,8 @@ def split_audio_into_intervals(raw_signal, fs, method='stft'):
     plt.plot(intervals_visual * 0.05)
     plt.legend(['Raw Signal',
                 'Spectrogram',
-                'Spectogram Valid Interval'])
+                'Spectogram Valid Interval',
+                'Actual Intervals'])
     plt.show()
 
 def process(input_fpath):
@@ -125,7 +125,7 @@ def process(input_fpath):
     num_samples = len(raw_data)
     duration_sec = num_samples/fs
 
-    split_audio_into_intervals(raw_data, fs, 0.0075)
+    split_audio_into_intervals(raw_data, fs)
 
 
     f, t, Zxx = signal.stft(raw_data, fs, nperseg=512)

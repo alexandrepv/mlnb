@@ -1,7 +1,7 @@
 Motion Synthesis:
 https://paperswithcode.com/task/motion-synthesis/codeless
 
-Sound Classificaiton:
+Sound Classification:
 
 
 Voice Synthesis:
