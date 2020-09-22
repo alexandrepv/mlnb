@@ -6,8 +6,6 @@ from numba import jit
 # Signal processing modules
 from scipy.signal import hilbert, chirp
 from scipy import signal
-import soundfile as sf
-import python_speech_features as psf
 
 def smoothMovingAvg(inputSignal, windowLen=11):
     windowLen = int(windowLen)
@@ -73,14 +71,14 @@ def split_audio_into_intervals(raw_signal, fs, spectogram_thres=0.0012):
 
     # Define constants
     windows_size = 512
-    spectogram_scale = 750      # TODO: Make these two numbers one!
+    spectogram_scale = 750   # TODO: Make these two numbers one!
 
     num_samples = len(raw_signal)
 
     # SPECTOGRAM
     freqs, times, spectrogram = signal.spectrogram(raw_signal, fs=fs, window='hanning',
-                                          nperseg=windows_size,
-                                          detrend=False, scaling='spectrum')
+                                                   nperseg=windows_size,
+                                                   detrend=False, scaling='spectrum')
     spectogram_amplitudes = np.sum(spectrogram*spectogram_scale, axis=0)
     spectogram_x_axis = np.linspace(0, num_samples, len(spectogram_amplitudes))
     spectogram_valid_windows = spectogram_amplitudes >= spectogram_thres
@@ -134,11 +132,6 @@ def process(input_fpath):
                                           nperseg=512, noverlap=256,
                                           detrend=False, scaling='spectrum')
 
-    plt.figure()
-    #plt.imshow(Sx, cmap='nipy_spectral')
-    plt.plot(np.sum(Sx, axis=0))
-    plt.show()
-
     stft_abs = np.absolute(Zxx)
     stft_abs_1d = np.reshape(stft_abs, stft_abs.shape[0]*stft_abs.shape[1])
     stft_abs_1d = stft_abs_1d[stft_abs_1d >= 0]
@@ -149,7 +142,7 @@ def process(input_fpath):
     analytic_signal = hilbert(raw_data)
     amplitude_envelope = np.abs(analytic_signal)
 
-    smooth_envelope = smoothMovingAvg(amplitude_envelope)
+    smooth_envelope = smoothMovingAvg(amplitude_envelope, windowLen=100)
 
     time_raw = np.arange(num_samples)/fs
     time_fft = np.linspace(0, duration_sec, Zxx.shape[1])
@@ -158,16 +151,15 @@ def process(input_fpath):
     plt.subplot(2, 1, 1)
     plt.plot(time_raw, raw_data)
     plt.xlim(0, duration_sec)
+    plt.plot(time_fft, stft_abs_sum)
+    plt.xlim(0, duration_sec)
+    plt.plot(time_raw, smooth_envelope)
+    plt.legend(['Raw data', 'STFT Abs. Sum', 'Moving Avg.'])
     plt.subplot(2, 1, 2)
     plt.pcolormesh(t, f, stft_abs, vmin=0, cmap='nipy_spectral')
     plt.title('STFT Magnitude')
     plt.ylabel('Frequency [Hz]')
     plt.xlabel('Time [sec]')
-    plt.subplot(2, 1, 1)
-    plt.plot(time_fft, stft_abs_sum)
-    plt.xlim(0, duration_sec)
-    plt.subplot(2, 1, 1)
-    plt.plot(time_raw, smooth_envelope)
     plt.xlim(0, duration_sec)
     plt.show()
 
