@@ -32,7 +32,7 @@ if __name__ == '__main__':
 
     # Create dictionary with details of the manga
     info_list = html.xpath('//span/a/@href')
-    info_dict = {'artist': [],'tag': [],'language': [],'category': []}
+    info_dict = {'artist': [], 'tag': [], 'language': [], 'category': []}
 
     for item in info_list:
         matches = re.search(r'/(.*)/(.*)/', item)
@@ -70,4 +70,3 @@ if __name__ == '__main__':
         else:
             wget.download(download_link, image_fpath)
             print('done.')
-
