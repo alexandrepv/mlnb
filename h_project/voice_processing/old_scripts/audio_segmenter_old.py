@@ -8,8 +8,28 @@ from scipy.signal import hilbert, chirp
 from scipy import signal
 import soundfile as sf
 import librosa
-from . import dsp
-from . import default
+from h_project.voice_processing import dsp
+from h_project.voice_processing import default
+
+class AudioSegmenterBase():
+
+    def __init__(self, parameters: dict):
+
+        pass
+
+    def train(self, features, labels):
+
+        pass
+
+    def process(self, audio_signal):
+
+        pass
+
+    def _extract_features(self, signal_raw):
+
+        pass
+
+
 
 class AudioSegmenter():
 
@@ -163,7 +183,6 @@ class AudioSegmenter():
         plt.plot(labeled_samples)
         plt.legend(['Raw Signal', 'Labels', 'Smoothed Signal', 'lpf signal'])
         plt.show()
-
 
 
     def find_intervals(self,

@@ -13,9 +13,14 @@ import numpy as np
 import xgboost as xgb
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
+from sklearn.cluster import KMeans
 
 # Debugging
 import matplotlib.pyplot as plt
+from matplotlib.collections import PatchCollection
+from matplotlib.patches import Rectangle
+
+# Local modeuls
 from . import default as default
 
 class SmartAudioSegmenter():
@@ -194,14 +199,85 @@ class SmartAudioSegmenter():
 
             _, filename = os.path.split(audio_fpath)
 
+            voice_silence_labels = self.cluster_audio_features(audio_fpath=audio_fpath,
+                                                               num_clusters=8,
+                                                               num_quitest_cluster=1,
+                                                               num_mfcc_features=13)
+
             plt.title(f"{filename}")
             plt.plot(raw_data)
             plt.plot(x_scaled, predicted_labels * 0.15)
-            plt.plot(x_scaled, predicted_proba[:, 1] * 0.05)
+            plt.plot(x_scaled, predicted_proba[:, 1] * 0.1)
+            plt.plot(x_scaled, voice_silence_labels * 0.2)
             plt.tight_layout()
-            plt.legend(['Signal','Predicted Labels', 'Predicted_probability'])
+            plt.legend(['Signal', 'Predicted Labels', 'Predicted_probability', 'Kmeans'])
             plt.show()
             plt.close(fig)
+
+    def cluster_audio_features(self,
+                               audio_fpath,
+                               num_clusters=6,
+                               num_quitest_cluster=2,
+                               num_mfcc_features=default.NUM_MFCC_FEATURES):
+
+        signal_raw, fs = librosa.load(audio_fpath, sr=default.SAMPLING_FREQUENCY)
+        avg_signal = self.smoothMovingAvg(np.abs(signal_raw), windowLen=100)
+        S = librosa.feature.melspectrogram(y=signal_raw,
+                                           sr=fs,
+                                           n_mels=num_mfcc_features,
+                                           n_fft=default.WINDOW_LENGTH,
+                                           hop_length=default.WINDOW_STEP)
+        mfcc = librosa.feature.mfcc(S=librosa.power_to_db(S))
+        window_means = self.get_signal_mean_per_window(signal_raw=signal_raw,
+                                                       window_steps=default.WINDOW_STEP)
+        num_windows = mfcc.shape[1]
+
+        kmeans = KMeans(n_clusters=num_clusters, random_state=0).fit(mfcc.transpose())
+
+        # Calculate cluster means
+        unique_labels = np.unique(kmeans.labels_)
+        cluster_means = np.ndarray((unique_labels.size,), dtype=np.float32)
+        for i, label in enumerate(unique_labels):
+            cluster_means[i] = np.mean(window_means[kmeans.labels_ == label])
+
+        # Pick cluster with lowest mean as "silence", and relabel everything else as "sound"
+        sorted_cluster_mean_indices = np.argsort(cluster_means)
+        voice_silence_labels = np.ones((num_windows,), dtype=np.bool)
+        for i in range(num_quitest_cluster):
+            index = unique_labels[sorted_cluster_mean_indices[i]]
+            voice_silence_labels[kmeans.labels_ == index] = False
+
+        return voice_silence_labels
+
+    def get_signal_mean_per_window(self, signal_raw, window_steps):
+
+        """
+        Based on the number of window steps, it will return the ranges
+        :param num_samples:
+        :param num_windows:
+        :param window_steps:
+        :return:
+        """
+
+        num_windows = signal_raw.size // window_steps
+        num_frames_left = signal_raw.size % window_steps
+        if num_frames_left > 0:
+            num_windows += 1
+
+        window_averages = np.ndarray((num_windows,), dtype=np.float32)
+
+        abs_signal = np.abs(signal_raw)
+        if num_windows == 1:
+            window_averages[0] = np.mean(abs_signal)
+        else:
+            a = b = 0
+            for i in range(num_windows-1):
+                a = i * window_steps
+                b = a + window_steps
+                window_averages[i] = np.mean(abs_signal[a:b])
+            window_averages[-1] = np.mean(abs_signal[b:-1])
+
+        return window_averages
 
     def extract_features_voice_and_silence(self,
                                            signal_raw,
@@ -246,14 +322,17 @@ class SmartAudioSegmenter():
         b = np.clip(num_windows * window_step, 0, num_samples)
         window_min_avg[-1] = np.min(signal_avg[a:b])
 
+        num_base_features = mfcc.shape[0]
         #num_base_features = mfcc.shape[0] + 1
-        num_base_features = 1
+        #num_base_features = 1
 
         if num_adjacent_windows == 0:
-            features = window_min_avg
+            #features = window_min_avg
+            features = mfcc.transpose()
         else:
             num_extended_features = num_base_features * (1 + 2 * num_adjacent_windows)  # +1 is the avg
-            features_in = window_min_avg
+            #features_in = window_min_avg
+            features_in = mfcc.transpose()
             features_out = np.zeros((num_windows, num_extended_features), dtype=np.float32)
             start = num_adjacent_windows
             stop = num_windows - num_adjacent_windows
@@ -271,6 +350,8 @@ class SmartAudioSegmenter():
 
         return features
 
+
+
     def smoothMovingAvg(self, inputSignal, windowLen=11):
 
         windowLen = int(windowLen)
@@ -285,28 +366,6 @@ class SmartAudioSegmenter():
         w = np.ones(windowLen, 'd')
         y = np.convolve(w / w.sum(), s, mode='same')
         return y[windowLen:-windowLen + 1]
-
-    def test_model_voice_and_silence(self):
-
-        for i, audio in enumerate(self.audio_list):
-            features, labels = self.prepare_features_voice_and_silence([i])
-
-            predicted_labels = self.model_voice_and_silence.predict(features)
-            predicted_proba = self.model_voice_and_silence.predict_proba(features)
-
-            fig = plt.figure()
-
-            x_scaled = np.arange(predicted_labels.size) * self.window_step
-
-            plt.title(f"{audio['filename']}")
-            plt.plot(audio['signal'])
-            plt.plot(x_scaled, labels*0.2)
-            plt.plot(x_scaled, predicted_labels*0.15)
-            plt.plot(x_scaled, predicted_proba[:, 1]*0.05)
-            plt.tight_layout()
-            plt.legend(['Signal', 'Target Labels', 'Predicted Labels', 'Predicted_proba'])
-            plt.show()
-            plt.close(fig)
 
     def demo_segment_audio_file(self, audio_fpath):
 
