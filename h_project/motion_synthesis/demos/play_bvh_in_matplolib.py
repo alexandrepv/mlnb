@@ -1,5 +1,8 @@
 import numpy as np
 import re
+
+
+from h_project.motion_synthesis.preprocessing import MocapParameterizer
 from h_project.motion_synthesis.parsers import BVHParser
 from h_project.motion_synthesis.skeleton_bvh import SkeletonBVH
 
@@ -8,8 +11,16 @@ import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d.axes3d as p3
 import matplotlib.animation as animation
 
+fpath = r'D:\data\mocap\mixamo_full_bvh_animations\catwalk_walk.bvh'
 
-fpath = r'D:\data\mocap\mixamo_full_bvh_animations\bartending.bvh'
+def axisEqual3D(ax):
+    extents = np.array([getattr(ax, 'get_{}lim'.format(dim))() for dim in 'xyz'])
+    sz = extents[:, 1] - extents[:, 0]
+    centers = np.mean(extents, axis=1)
+    maxsize = max(abs(sz))
+    r = maxsize/2
+    for ctr, dim in zip(centers, 'xyz'):
+        getattr(ax, 'set_{}lim'.format(dim))(ctr - r, ctr + r)
 
 # ====================== Parse BVH file ========================
 
@@ -17,9 +28,34 @@ bvh_parser = BVHParser()
 mocap = [bvh_parser.parse(filename=fpath)]
 skeleton_bvh = SkeletonBVH()
 skeleton_bvh.load_bvh_new(fpath)
-# skeleton_bvh.load(fpath)
 
-g = 0
+fig = plt.figure()
+ax = p3.Axes3D(fig)
+
+lines = skeleton_bvh.generate_skeleton_line_representation(frame=0)
+line_plot_list = [ax.plot(lines[i, :, 0]*0.5,
+                          lines[i, :, 1],
+                          lines[i, :, 2]*0.5)[0] for i in range(lines.shape[0])]
+axisEqual3D(ax)
+
+def update_plot(frame):
+    lines = skeleton_bvh.generate_skeleton_line_representation(frame=frame)
+    for i, line_plot in enumerate(line_plot_list):
+        line_plot.set_xdata(lines[i, :, 0] * 0.5)
+        line_plot.set_ydata(lines[i, :, 1])
+        line_plot.set_3d_properties(lines[i, :, 2] * 0.5, zdir='y')  # z axis
+
+ax.set_xlim3d([-50, 50])
+ax.set_xlabel('X')
+ax.set_ylim3d([-50, 50])
+ax.set_ylabel('Y')
+ax.set_zlim3d([-100, 100])
+ax.set_zlabel('Z')
+ax.set_title('3D Test')
+
+# Creating the Animation object
+line_ani = animation.FuncAnimation(fig, update_plot, skeleton_bvh.animation_df.index.size, interval=1, blit=False)
+plt.show()
 
 BVH2Pos = MocapParameterizer('position')
 data_pos = BVH2Pos.fit_transform(mocap)
@@ -54,14 +90,6 @@ positions[1, :, :] *= 0.5
 
 # ========================= Animation ========================
 
-def axisEqual3D(ax):
-    extents = np.array([getattr(ax, 'get_{}lim'.format(dim))() for dim in 'xyz'])
-    sz = extents[:,1] - extents[:,0]
-    centers = np.mean(extents, axis=1)
-    maxsize = max(abs(sz))
-    r = maxsize/2
-    for ctr, dim in zip(centers, 'xyz'):
-        getattr(ax, 'set_{}lim'.format(dim))(ctr - r, ctr + r)
 
 area_radius = 50
 area_height = 200
@@ -77,12 +105,11 @@ lines = [ax.plot(positions[0, i, 0],
                  positions[1, i, 0],
                  positions[2, i, 0], 'o')[0] for i in range(unique_bones.size)]
 
-
-
 def update_lines(frame) :
     for i, line in enumerate(lines):
         # NOTE: there is no .set_data() for 3 dim data...
         line.set_data(positions[0:2, i, frame])
+        print(positions[2, i, frame].shape)
         line.set_3d_properties(positions[2, i, frame])
 
         x = positions[0, i, frame]

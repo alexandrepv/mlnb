@@ -4,6 +4,7 @@ import copy
 import re
 
 from h_project.motion_synthesis.quaternion_old import Quaternions
+import h_project.motion_synthesis.utils as utils
 
 SKELETON_DF_KEY_BONE = 'bone'
 SKELETON_DF_KEY_PARENT_INDEX = 'parent_index'
@@ -49,13 +50,14 @@ rotation_map = {
     'Zrotation': 'z'
 }
 
-class SkeletonBVH():
+class SkeletonBVH:
 
     def __init__(self):
 
         self.num_frames = 0
         self.animation_df = None
         self.skeleton_df = None
+        self.skeleton_local_transforms = None
         self.end_effectors_df = None
         self.num_frames = 0
         self.frame_time = 0
@@ -155,15 +157,52 @@ class SkeletonBVH():
             # =============== Motion ================
 
             # If you got here, it means this is the motion data part of the file
+            # ALL OF THE ANGLES ARE STORED IN RADIANS! I HAVE SPOKEN!!!
             dmatch = line.strip().split()
             if dmatch:
-                animation_data[frame_index, :] = np.array(list(map(np.float32, dmatch)))
+                values = np.array(list(map(np.float32, dmatch)))
+                # TODO: Re-do this properly so it is position agnostic
+
+                animation_data[frame_index, :3] = values[:3]  # Root position
+                animation_data[frame_index, 3:] = (values[3:] * np.pi) / 180.0  # Rotation
                 frame_index += 1
 
-        self.animation_df = pd.DataFrame(columns=animation_columns,
-                                         data=animation_data)
+        self.animation_df = pd.DataFrame(columns=animation_columns, data=animation_data)
         self.end_effectors_df['bone'] = np.array(end_effector_index_list, dtype=np.int)
         self.end_effectors_df['length'] = np.array(end_effector_length_list, dtype=np.float32)
+
+    def generate_skeleton_line_representation(self, frame):
+
+        # step 1) Create world matrices for all bones
+        num_bones = self.skeleton_df.index.size
+        world_matrices = np.ndarray((num_bones, 4, 4), dtype=np.float32)
+        for index, bone in self.skeleton_df.iterrows():
+
+            bone_label = bone[SKELETON_DF_KEY_BONE]
+            pos_vector = np.array(bone[SKELETON_DF_KEY_OFFSET_X:SKELETON_DF_KEY_OFFSET_Z], dtype=np.float32)
+            rot_x = self.animation_df.loc[frame, f"{bone_label}_rot_x"]
+            rot_y = self.animation_df.loc[frame, f"{bone_label}_rot_y"]
+            rot_z = self.animation_df.loc[frame, f"{bone_label}_rot_z"]
+            local_matrix = utils.transform_euler(x_rad=rot_x,
+                                                 y_rad=rot_y,
+                                                 z_rad=rot_z,
+                                                 pos_vector=pos_vector,
+                                                 rot_order=bone[SKELETON_DF_KEY_ROT_ORDER])
+            parent_index = bone[SKELETON_DF_KEY_PARENT_INDEX]
+            if parent_index == -1:
+                world_matrices[index, :, :] = local_matrix
+            else:
+                world_matrices[index, :, :] = np.matmul(world_matrices[parent_index, :, :], local_matrix)
+
+        # Step 2) Connect all the translation points form all matrices
+        lines = np.ndarray((num_bones-1, 2, 3))
+        for index in np.arange(1, num_bones):
+            parent_index = self.skeleton_df.loc[index, SKELETON_DF_KEY_PARENT_INDEX]
+            i = index - 1
+            lines[i, 0, :] = world_matrices[parent_index, 0:3, 3]
+            lines[i, 1, :] = world_matrices[index, 0:3, 3]
+
+        return lines
 
     def load(self, filename, start=None, end=None, order=None, world=False):
         """
