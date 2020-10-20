@@ -1,11 +1,9 @@
 import numpy as np
 import re
 
-
 from h_project.motion_synthesis.preprocessing import MocapParameterizer
 from h_project.motion_synthesis.parsers import BVHParser
 from h_project.motion_synthesis.skeleton_bvh import SkeletonBVH
-
 
 import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d.axes3d as p3
@@ -23,6 +21,11 @@ def axisEqual3D(ax):
         getattr(ax, 'set_{}lim'.format(dim))(ctr - r, ctr + r)
 
 # ====================== Parse BVH file ========================
+
+T1 = np.asarray([[23.3], [92.1], [2.1]], dtype=np.float32)
+T2 = np.asarray([[27.4], [92.1], [3.1]], dtype=np.float32)
+results = np.linalg.pinv(T2) @ T1
+
 
 bvh_parser = BVHParser()
 mocap = [bvh_parser.parse(filename=fpath)]

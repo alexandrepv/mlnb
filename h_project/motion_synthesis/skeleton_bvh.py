@@ -6,7 +6,7 @@ import re
 from h_project.motion_synthesis.quaternion_old import Quaternions
 import h_project.motion_synthesis.utils as utils
 
-SKELETON_DF_KEY_BONE = 'bone'
+SKELETON_DF_KEY_JOINT_LABEL = 'joint_label'
 SKELETON_DF_KEY_PARENT_INDEX = 'parent_index'
 SKELETON_DF_KEY_OFFSET_X = 'offset_x'
 SKELETON_DF_KEY_OFFSET_Y = 'offset_y'
@@ -65,14 +65,14 @@ class SkeletonBVH:
     def load_bvh_new(self, fpath):
 
         # Dataframe setup
-        columns = [SKELETON_DF_KEY_BONE,
+        columns = [SKELETON_DF_KEY_JOINT_LABEL,
                    SKELETON_DF_KEY_PARENT_INDEX,
                    SKELETON_DF_KEY_OFFSET_X,
                    SKELETON_DF_KEY_OFFSET_Y,
                    SKELETON_DF_KEY_OFFSET_Z,
                    SKELETON_DF_KEY_ROT_ORDER]
         self.skeleton_df = pd.DataFrame(columns=columns)
-        self.end_effectors_df = pd.DataFrame(columns=['bone', 'length'])
+        self.end_effectors_df = pd.DataFrame(columns=[SKELETON_DF_KEY_JOINT_LABEL, 'length'])
 
         # Temporarty storage
         parents_index_list = []
@@ -146,7 +146,7 @@ class SkeletonBVH:
                 continue
 
             # If you got here, it means you finished with the skeleton
-            self.skeleton_df[SKELETON_DF_KEY_BONE] = bone_name_list
+            self.skeleton_df[SKELETON_DF_KEY_JOINT_LABEL] = bone_name_list
             self.skeleton_df[SKELETON_DF_KEY_PARENT_INDEX] = parents_index_list
             offsets = np.array(offset_list).astype(np.float32)
             self.skeleton_df[SKELETON_DF_KEY_OFFSET_X] = offsets[:, 0]
@@ -168,7 +168,8 @@ class SkeletonBVH:
                 frame_index += 1
 
         self.animation_df = pd.DataFrame(columns=animation_columns, data=animation_data)
-        self.end_effectors_df['bone'] = np.array(end_effector_index_list, dtype=np.int)
+        self.end_effectors_df[SKELETON_DF_KEY_JOINT_LABEL] = np.array(end_effector_index_list, dtype=np.int)
+        self.end_effectors_df['parent'] = self.end_effectors_df.loc[end_effector_index_list, SKELETON_DF_KEY_JOINT_LABEL].values
         self.end_effectors_df['length'] = np.array(end_effector_length_list, dtype=np.float32)
 
     def generate_skeleton_line_representation(self, frame):
@@ -176,19 +177,19 @@ class SkeletonBVH:
         # step 1) Create world matrices for all bones
         num_bones = self.skeleton_df.index.size
         world_matrices = np.ndarray((num_bones, 4, 4), dtype=np.float32)
-        for index, bone in self.skeleton_df.iterrows():
+        for index, joint in self.skeleton_df.iterrows():
 
-            bone_label = bone[SKELETON_DF_KEY_BONE]
-            pos_vector = np.array(bone[SKELETON_DF_KEY_OFFSET_X:SKELETON_DF_KEY_OFFSET_Z], dtype=np.float32)
-            rot_x = self.animation_df.loc[frame, f"{bone_label}_rot_x"]
-            rot_y = self.animation_df.loc[frame, f"{bone_label}_rot_y"]
-            rot_z = self.animation_df.loc[frame, f"{bone_label}_rot_z"]
+            joint_label = joint[SKELETON_DF_KEY_JOINT_LABEL]
+            pos_vector = np.array(joint[SKELETON_DF_KEY_OFFSET_X:SKELETON_DF_KEY_OFFSET_Z], dtype=np.float32)
+            rot_x = self.animation_df.loc[frame, f"{joint_label}_rot_x"]
+            rot_y = self.animation_df.loc[frame, f"{joint_label}_rot_y"]
+            rot_z = self.animation_df.loc[frame, f"{joint_label}_rot_z"]
             local_matrix = utils.transform_euler(x_rad=rot_x,
                                                  y_rad=rot_y,
                                                  z_rad=rot_z,
                                                  pos_vector=pos_vector,
-                                                 rot_order=bone[SKELETON_DF_KEY_ROT_ORDER])
-            parent_index = bone[SKELETON_DF_KEY_PARENT_INDEX]
+                                                 rot_order=joint[SKELETON_DF_KEY_ROT_ORDER])
+            parent_index = joint[SKELETON_DF_KEY_PARENT_INDEX]
             if parent_index == -1:
                 world_matrices[index, :, :] = local_matrix
             else:
@@ -197,6 +198,13 @@ class SkeletonBVH:
         # Step 2) Connect all the translation points form all matrices
         lines = np.ndarray((num_bones-1, 2, 3))
         for index in np.arange(1, num_bones):
+            parent_index = self.skeleton_df.loc[index, SKELETON_DF_KEY_PARENT_INDEX]
+            i = index - 1
+            lines[i, 0, :] = world_matrices[parent_index, 0:3, 3]
+            lines[i, 1, :] = world_matrices[index, 0:3, 3]
+
+        # Step 3) Add end effector lines
+        for index, joint in self.end_effectors_df.iterrows():
             parent_index = self.skeleton_df.loc[index, SKELETON_DF_KEY_PARENT_INDEX]
             i = index - 1
             lines[i, 0, :] = world_matrices[parent_index, 0:3, 3]
