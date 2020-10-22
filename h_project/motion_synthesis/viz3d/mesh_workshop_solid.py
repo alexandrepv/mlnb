@@ -2,7 +2,40 @@ import numpy as np
 import copy
 from . import default
 
-class DebugMeshSolid:
+from OpenGL.GL import *
+import OpenGL.GL.shaders
+
+VERTEX_SHADER = """
+#version 330 core
+in vec4 position_in;
+in vec4 color_in;
+//in vec3 normal_in;
+
+out vec4 position_out;
+//out vec3 normal_out;
+out vec4 frag_color;
+
+uniform mat4 view_projection;
+
+void main()
+{
+    gl_Position = view_projection * position_in;
+    frag_color = color_in;
+}
+"""
+
+FRAGMENT_SHADER = """
+#version 330 core
+in vec4 frag_color;
+out vec4 color_out;
+
+void main()
+{
+    color_out = frag_color;
+} 
+"""
+
+class MeshWorkshopSolid:
 
     def __init__(self, max_num_vertices=default.MESH_DEBUG_SOLID_NUM_VERTICES):
 
@@ -14,16 +47,11 @@ class DebugMeshSolid:
         self.num_vertices = 0
         self.num_indices = 0
 
-        # OpenGL variables
-        self.gl_vbo = None
-        self.gl_ebo = None
-
         # Template meshes
         self.template_cube_vertices = np.array(default.CUBE_VERTICES_LIST, dtype=np.float32)
         self.template_cube_normals = np.array(default.CUBE_NORMALS_LIST, dtype=np.float32)
         self.template_cube_indices = np.array(default.CUBE_INDICES_LIST, dtype=np.uint32).flatten()
         self.template_cube_num_vertices = self.template_cube_vertices.shape[0]
-
 
     def add_cuboid(self, transform, width, height, depth, colorRGBA):
 
@@ -54,7 +82,3 @@ class DebugMeshSolid:
         d = c + self.template_cube_indices.size
         self.indices[c:d] = self.template_cube_indices + c
         self.num_indices = copy.copy(d)
-
-    def clear(self):
-        self.num_vertices = 0
-        self.num_indices = 0

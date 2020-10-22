@@ -15,8 +15,7 @@ MAIN_CAMERA_PARAMS = {CAMERA_KEY_TYPE: CAMERA_KEY_PERSPECTIVE,
                       CAMERA_KEY_ASPECT: 500/400,
                       CAMERA_KEY_FAR: 100,
                       CAMERA_KEY_NEAR: 0.1,
-                      CAMERA_KEY_FOV_VERTICAL: 45.0}  # In degrees?
-
+                      CAMERA_KEY_FOV_VERTICAL: 45.0}
 
 CUBE_VERTICES_LIST=[[-1, -1, -1, 1],
                     [-1, -1,  1, 1],

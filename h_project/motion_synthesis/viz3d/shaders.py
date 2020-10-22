@@ -1,25 +1,23 @@
-LIGHT_CASTER_VERTEX_SHADER = """
+MWS_VERTEX_SHADER = """
 #version 330 core
-in vec4 position_in;
-in vec4 color_in;
-//in vec3 normal_in;
+in vec4 world_position;
+in vec4 color;
+//in vec3 world_normal;
 
 out vec4 position_out;
 //out vec3 normal_out;
 out vec4 frag_color;
 
-
 uniform mat4 view_projection;
 
 void main()
 {
-    // All supplied vertices and normals are already transformed into world coordinates
-    gl_Position = view_projection * position_in;
-    frag_color = color_in;
+    gl_Position = view_projection * world_position;
+    frag_color = color;
 }
 """
 
-LIGHT_CASTER_FRAGMENT_SHADER = """
+MWS_FRAGMENT_SHADER = """
 #version 330 core
 in vec4 frag_color;
 out vec4 color_out;
