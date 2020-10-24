@@ -1,50 +1,48 @@
 import numpy as np
 
-
 MESH_DEBUG_SOLID_NUM_VERTICES = int(1E6)
 
-CAMERA_KEY_TYPE = 'type'
-CAMERA_KEY_PERSPECTIVE = 'perspective'
-CAMERA_KEY_ORTHOGRAPHIC = 'orthographic'
-CAMERA_KEY_ASPECT = 'aspect'
-CAMERA_KEY_FAR = 'far'
-CAMERA_KEY_NEAR = 'near'
-CAMERA_KEY_FOV_VERTICAL = 'fov_vertical'
+CAMERA_FAR_FIELD = 0.1
+CAMERA_NEAR_FIELD = 1000
+CAMERA_FOV_DEGREES = 45.0
 
-MAIN_CAMERA_PARAMS = {CAMERA_KEY_TYPE: CAMERA_KEY_PERSPECTIVE,
-                      CAMERA_KEY_ASPECT: 500/400,
-                      CAMERA_KEY_FAR: 100,
-                      CAMERA_KEY_NEAR: 0.1,
-                      CAMERA_KEY_FOV_VERTICAL: 45.0}
+CAMERA_POSITION = np.array([0, 0, 2], dtype=np.float32)
+CAMERA_WORLD_UP = np.array([0, 1, 0], dtype=np.float32)
+CAMERA_UP = np.array([0, 1, 0], dtype=np.float32)
+CAMERA_FRONT = np.array([0, 0, -1], dtype=np.float32)
+CAMERA_PITCH_RADIANS = 0
+CAMERA_YAW_RADIANS = 0
+CAMERA_MOUSE_SENSITIVITY = 0.001
+CAMERA_ZOOM = 45.0
+CAMERA_MOVEMENT_SPEED = 2.5
+CAMERA_MAX_PITCH_RADIANS = 1.55334  # ~89 degrees
 
-CUBE_VERTICES_LIST=[[-1, -1, -1, 1],
-                    [-1, -1,  1, 1],
-                    [1, -1, -1, 1],
-                    [1, -1,  1, 1],
-                    [1,  1, -1, 1],
-                    [1,  1,  1, 1],
-                    [-1,  1, -1, 1],
-                    [-1,  1,  1, 1]]
-CUBE_NORMALS_LIST=[[0, -1,  0],
-                   [0,  0,  1],
-                   [0,  0,  0],
-                   [1,  0,  0],
-                   [0,  1,  0],
-                   [0,  0,  0],
-                   [0,  0, -1],
-                   [-1,  0,  0]]
-CUBE_INDICES_LIST=[[0, 2, 3],
-                   [0, 3, 1],
-                   [4, 6, 7],
-                   [4, 7, 5],
-                   [3, 2, 4],
-                   [3, 4, 5],
-                   [7, 6, 0],
-                   [7, 0, 1],
-                   [6, 4, 2],
-                   [6, 2, 0],
-                   [1, 3, 5],
-                   [1, 5, 7]]
+TEMPLATE_CUBE_VERTICES = np.array([[0.5, -0.5, 0.5, 1],
+                                   [0.5, 0.5, 0.5, 1],
+                                   [0.5, 0.5, -0.5, 1],
+                                   [0.5, -0.5, -0.5, 1],
+                                   [-0.5, -0.5, 0.5, 1],
+                                   [-0.5, 0.5, 0.5, 1],
+                                   [-0.5, 0.5, -0.5, 1],
+                                   [-0.5, -0.5, -0.5, 1]], dtype=np.float32)
+TEMPLATE_CUBE_NORMALS = np.array([[1, 0,  0],
+                                  [0,  1,  0],
+                                  [0,  0,  1],
+                                  [-1,  0,  0],
+                                  [0,  -1,  0],
+                                  [0,  0,  -1]], dtype=np.float32)
+TEMPLATE_CUBE_COMBO = np.array([[0, 2, 1, 0], # Triangle indices and normal indices
+                                [0, 3, 2, 0],
+                                [1, 2, 6, 1],
+                                [1, 6, 5, 1],
+                                [4, 1, 5, 2],
+                                [4, 0, 1, 2],
+                                [5, 7, 4, 3],
+                                [5, 6, 7, 3],
+                                [4, 3, 0, 4],
+                                [4, 7, 3, 4],
+                                [3, 6, 2, 5],
+                                [3, 7, 6, 5]], dtype=np.int32)
 # Meshes
 """
 CUBE_VERTICES_LIST = [[0.5, -0.5, 0.5],
