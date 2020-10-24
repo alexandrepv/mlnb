@@ -68,9 +68,11 @@ class Camera:
 
         self.view_matrix = pyrr.matrix44.create_look_at(eye=self.position,
                                                         target=self.position + self.front_vector,
-                                                        up=default.CAMERA_UP)
+                                                        up=default.CAMERA_WORLD_UP)
 
         self.view_projection_matrix = self.view_matrix @ self.projection_matrix
+
+        g = 0
 
     def process_mouse_movement(self, delta_x, delta_y):
 

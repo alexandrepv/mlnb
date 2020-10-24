@@ -2,8 +2,8 @@ import numpy as np
 
 MESH_DEBUG_SOLID_NUM_VERTICES = int(1E6)
 
-CAMERA_FAR_FIELD = 0.1
-CAMERA_NEAR_FIELD = 1000
+CAMERA_FAR_FIELD = 1000
+CAMERA_NEAR_FIELD = 0.1
 CAMERA_FOV_DEGREES = 45.0
 
 CAMERA_POSITION = np.array([0, 0, 2], dtype=np.float32)
@@ -11,7 +11,7 @@ CAMERA_WORLD_UP = np.array([0, 1, 0], dtype=np.float32)
 CAMERA_UP = np.array([0, 1, 0], dtype=np.float32)
 CAMERA_FRONT = np.array([0, 0, -1], dtype=np.float32)
 CAMERA_PITCH_RADIANS = 0
-CAMERA_YAW_RADIANS = 0
+CAMERA_YAW_RADIANS = -np.pi/2  # This is a workaround for the camera 90degree turn at the begining. FIX THIS PROPERLY!
 CAMERA_MOUSE_SENSITIVITY = 0.001
 CAMERA_ZOOM = 45.0
 CAMERA_MOVEMENT_SPEED = 2.5

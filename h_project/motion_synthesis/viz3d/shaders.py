@@ -31,7 +31,6 @@ uniform vec3 light_position;
 uniform vec3 light_diffuse;
 //uniform vec3 light_ambient;
 
-
 void main()
 {
     // Fucked up ONE
@@ -43,16 +42,37 @@ void main()
     vec3 diffuse = diff * light_diffuse;
     vec3 result = (ambient + diffuse) * frag_color.rgb;
 
-    // Something fucking else
-    vec3 light_position2 = vec3(1.2, 1, 2);
-    vec3 light_color2 = vec3(1, 1, 1);
-    vec3 ambient2 = 0.1 * light_color2;
-    vec3 norm2 = normalize(frag_normal);
-    vec3 lightDir2 = normalize(light_position2 - frag_position);
-    float diff2 = max(dot(norm2, lightDir2), 0.0);
-    vec3 diffuse2 = diff2 * light_color2;
-    vec3 result2 = (ambient2 + diffuse2) * frag_color.rgb;
-    
     final_color = vec4(result, 1.0);
+    //final_color = vec4(result*0.001 + vec3(gl_FragCoord.z), 1.0);
+} 
+"""
+
+MWW_VERTEX_SHADER = """
+#version 330 core
+in vec4 world_position; 
+in vec4 color;
+
+out vec3 frag_position;
+out vec4 frag_color;
+
+uniform mat4 view_projection;
+
+void main()
+{
+    frag_color = color;
+    gl_Position = view_projection * world_position;
+}
+"""
+
+MWW_FRAGMENT_SHADER = """
+#version 330 core
+in vec3 frag_position;
+in vec4 frag_color;
+out vec4 final_color;
+
+void main()
+{
+    final_color = frag_color;
+    //final_color = frag_color*0.001 + vec4(vec3(gl_FragCoord.z), 1.0);
 } 
 """

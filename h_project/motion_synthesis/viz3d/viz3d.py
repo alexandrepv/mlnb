@@ -11,6 +11,7 @@ from . import shaders
 from . import default
 from . import camera
 from . import mesh_workshop_solid
+from . import mesh_workshop_wireframe
 
 class Viz3D:
 
@@ -33,11 +34,10 @@ class Viz3D:
 
         # Mesh Workshop Solid
         self.mws = mesh_workshop_solid.MeshWorkshopSolid()
+        self.mws_gl_program = None
         self.mws_gl_vbo_vertices = None
         self.mws_gl_vbo_normals = None
         self.mws_gl_vbo_colors = None
-        self.mws_gl_ebo_indices = None
-        self.mws_gl_program = None
         self.mws_gl_shader_world_position = None
         self.mws_gl_shader_world_normal = None
         self.mws_gl_shader_color = None
@@ -45,6 +45,15 @@ class Viz3D:
         self.mws_gl_uniform_light_position = None
         self.mws_gl_uniform_light_diffuse = None
         self.mws_gl_uniform_light_ambient = None
+
+        # Mesh Workshop Wireframe
+        self.mww = mesh_workshop_wireframe.MeshWorkshopWireframe()
+        self.mww_gl_program = None
+        self.mww_gl_vbo_vertices = None
+        self.mww_gl_vbo_colors = None
+        self.mww_gl_shader_world_position = None
+        self.mww_gl_shader_color = None
+        self.mww_gl_uniform_view_projection = None
 
         # Frame update variables
         self.time_past = time.time()
@@ -75,11 +84,17 @@ class Viz3D:
         #glfw.set_cursor_enter_callback(self.window_glfw, self.mouse_enter_window_callback)
 
         self._init_mesh_workshop_solid()
+        self._init_mesh_workshop_wireframe()
 
-        glClearColor(0.0, 0.0, 0.0, 1.0)
+        # Depth test
         glEnable(GL_DEPTH_TEST)
-        glEnable(GL_BLEND)
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glDepthMask(GL_TRUE)
+        glDepthFunc(GL_LESS)
+        glClearColor(0.0, 0.0, 0.0, 1.0)
+        glClearDepth(1.0)
+
+        #glEnable(GL_BLEND)
+        #glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         glEnable(GL_CULL_FACE)
 
         self.initialised = True
@@ -92,10 +107,12 @@ class Viz3D:
         self.time_past = time_present
 
         # Render 3D solids
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         self.main_camera.update(self.elapsed_time)
 
+        self._render_mesh_workshop_wireframe()
         self._render_mesh_workshop_solid()
 
         # Swap buffers and acquire inputs for next frame
@@ -126,17 +143,43 @@ class Viz3D:
 
         self.mws_gl_vbo_vertices = glGenBuffers(1)
         glBindBuffer(GL_ARRAY_BUFFER, self.mws_gl_vbo_vertices)
-        glBufferData(GL_ARRAY_BUFFER, self.mws.num_vertices * 16, None, GL_STATIC_DRAW)
+        glBufferData(GL_ARRAY_BUFFER, self.mws.num_vertices * 16, None, GL_DYNAMIC_DRAW)
 
         self.mws_gl_vbo_normals = glGenBuffers(1)
         glBindBuffer(GL_ARRAY_BUFFER, self.mws_gl_vbo_normals)
-        glBufferData(GL_ARRAY_BUFFER, self.mws.num_vertices * 12, None, GL_STATIC_DRAW)
+        glBufferData(GL_ARRAY_BUFFER, self.mws.num_vertices * 12, None, GL_DYNAMIC_DRAW)
 
         self.mws_gl_vbo_colors = glGenBuffers(1)
         glBindBuffer(GL_ARRAY_BUFFER, self.mws_gl_vbo_colors)
-        glBufferData(GL_ARRAY_BUFFER, self.mws.num_vertices * 16, None, GL_STATIC_DRAW)
+        glBufferData(GL_ARRAY_BUFFER, self.mws.num_vertices * 16, None, GL_DYNAMIC_DRAW)
+
+    def _init_mesh_workshop_wireframe(self):
+
+        self.mww_gl_program = OpenGL.GL.shaders.compileProgram(
+            OpenGL.GL.shaders.compileShader(shaders.MWW_VERTEX_SHADER, GL_VERTEX_SHADER),
+            OpenGL.GL.shaders.compileShader(shaders.MWW_FRAGMENT_SHADER, GL_FRAGMENT_SHADER))
+
+        glUseProgram(self.mww_gl_program)
+
+        # Get VBO locations
+        self.mww_gl_shader_world_position = glGetAttribLocation(self.mww_gl_program, 'world_position')
+        self.mww_gl_shader_color = glGetAttribLocation(self.mww_gl_program, 'color')
+
+        # Get Uniform location
+        self.mww_gl_uniform_view_projection = glGetUniformLocation(self.mww_gl_program, 'view_projection')
+
+        self.mww_gl_vbo_vertices = glGenBuffers(1)
+        glBindBuffer(GL_ARRAY_BUFFER, self.mww_gl_vbo_vertices)
+        glBufferData(GL_ARRAY_BUFFER, self.mww.num_vertices * 16, None, GL_DYNAMIC_DRAW)
+
+        self.mww_gl_vbo_colors = glGenBuffers(1)
+        glBindBuffer(GL_ARRAY_BUFFER, self.mww_gl_vbo_colors)
+        glBufferData(GL_ARRAY_BUFFER, self.mww.num_vertices * 16, None, GL_DYNAMIC_DRAW)
 
     def _render_mesh_workshop_solid(self):
+
+        if self.mws.num_vertices == 0:
+            return
 
         glUseProgram(self.mws_gl_program)
 
@@ -168,11 +211,37 @@ class Viz3D:
         #glUniform3fv(self.mws_gl_uniform_light_ambient, 1, GL_FALSE, light_ambient)
 
         # Render Time!
-        glDrawArrays(GL_TRIANGLES, 0, self.mws.num_vertices);
+        glDrawArrays(GL_TRIANGLES, 0, self.mws.num_vertices)
 
         # Clear all meshes
         self.mws.num_vertices = 0
-        self.mws.num_indices = 0
+
+    def _render_mesh_workshop_wireframe(self):
+
+        if self.mww.num_vertices == 0:
+            return
+
+        glUseProgram(self.mww_gl_program)
+
+        # VBOs
+        self._upload_data_to_gpu(data=self.mww.vertices,
+                                 gl_vbo=self.mww_gl_vbo_vertices,
+                                 gl_shader_variable=self.mww_gl_shader_world_position,
+                                 num_elements=self.mww.num_vertices)
+
+        self._upload_data_to_gpu(data=self.mww.colors,
+                                 gl_vbo=self.mww_gl_vbo_colors,
+                                 gl_shader_variable=self.mww_gl_shader_color,
+                                 num_elements=self.mww.num_vertices)
+
+        # Uniforms
+        glUniformMatrix4fv(self.mww_gl_uniform_view_projection, 1, GL_FALSE, self.main_camera.view_projection_matrix)
+
+        # Render Time!
+        glDrawArrays(GL_LINES, 0, self.mww.num_vertices)
+
+        # Clear all meshes
+        self.mww.num_vertices = 0
 
     def _init_mesh(self):
 

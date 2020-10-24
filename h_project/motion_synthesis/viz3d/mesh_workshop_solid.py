@@ -15,7 +15,6 @@ class MeshWorkshopSolid:
         self.normals = np.ndarray((max_num_vertices, 3), dtype=np.float32)  # XYZ
         self.colors = np.ndarray((max_num_vertices, 4), dtype=np.float32)  # RGBA
         self.num_vertices = 0
-        self.num_indices = 0
 
         # ===================================
         #           Template Solids
