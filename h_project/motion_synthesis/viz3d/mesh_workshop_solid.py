@@ -1,6 +1,7 @@
 import numpy as np
 import copy
 from . import default
+from . import template_geometry_solid as templates
 
 class MeshWorkshopSolid:
 
@@ -16,22 +17,15 @@ class MeshWorkshopSolid:
         self.colors = np.ndarray((max_num_vertices, 4), dtype=np.float32)  # RGBA
         self.num_vertices = 0
 
-        # ===================================
-        #           Template Solids
-        # ===================================
+        # Template solids
+        self.vertices_cube, self.normals_cube = templates.create_cube(0.5, 1, 0.5)
+        self.vertices_cylinder_8, self.normals_cylinder_8 = templates.create_cylinder(num_sides=8)
+        self.vertices_cylinder_16, self.normals_cylinder_16 = templates.create_cylinder(num_sides=16)
+        self.vertices_cylinder_32, self.normals_cylinder_32 = templates.create_cylinder(num_sides=32)
 
-        # Create cube template
-        cube_num_vertices = default.TEMPLATE_CUBE_COMBO.shape[0] * 3
-        self.template_cube_vertices = np.ndarray((cube_num_vertices, 4), dtype=np.float32)
-        self.template_cube_normals = np.ndarray((cube_num_vertices, 3), dtype=np.float32)
-        for i in range(default.TEMPLATE_CUBE_COMBO.shape[0]):  # Per triangle
-            a = self.num_vertices
-            b = a + 3
-            triangle_indices = default.TEMPLATE_CUBE_COMBO[i, 0:3]
-            triangle_normal = default.TEMPLATE_CUBE_NORMALS[default.TEMPLATE_CUBE_COMBO[i, 3], :]
-            self.template_cube_vertices[a:b, :] = default.TEMPLATE_CUBE_VERTICES[triangle_indices, :]
-            self.template_cube_normals[a:b, :] = triangle_normal
-            self.num_vertices += 3
+        # Create sphere templates
+        #self.template_sphere_vertices, \
+        #self.template_cylinder8_normals = self._create_cylinder_template(num_sides=8)
 
     def add_cuboid(self, transform, width, height, depth, colorRGBA):
 
@@ -48,15 +42,46 @@ class MeshWorkshopSolid:
 
         # For simplicity
         a = self.num_vertices
-        b = a + self.template_cube_vertices.shape[0]
+        b = a + self.vertices_cube.shape[0]
 
-        # ===== Vertices ====
-        cuboid_vertices = self.template_cube_vertices * np.array([width, height, depth, 1.0], dtype=np.float32)
+        cuboid_vertices = self.vertices_cube * np.array([width, height, depth, 1.0], dtype=np.float32)
         self.vertices[a:b, :] = np.matmul(cuboid_vertices, np.transpose(transform))
+        self.normals[a:b, :] = np.matmul(self.normals_cube, np.transpose(transform[0:3, 0:3]))
+        self.colors[a:b, :] = colorRGBA
         self.num_vertices = copy.copy(b)
 
-        # ===== Normals ====
-        self.normals[a:b, :] = np.matmul(self.template_cube_normals, np.transpose(transform[0:3, 0:3]))
+    def add_cylinder8(self, transform, height, radius, colorRGBA):
 
-        # ===== Colors =====
+        # For simplicity
+        a = self.num_vertices
+        b = a + self.vertices_cylinder_8.shape[0]
+
+        cylinder_vertices = self.vertices_cylinder_8 * np.array([radius, height, radius, 1.0], dtype=np.float32)
+        self.vertices[a:b, :] = np.matmul(cylinder_vertices, np.transpose(transform))
+        self.normals[a:b, :] = np.matmul(self.normals_cylinder_8, np.transpose(transform[0:3, 0:3]))
         self.colors[a:b, :] = colorRGBA
+        self.num_vertices = copy.copy(b)
+
+    def add_cylinder16(self, transform, height, radius, colorRGBA):
+
+        # For simplicity
+        a = self.num_vertices
+        b = a + self.vertices_cylinder_16.shape[0]
+
+        cylinder_vertices = self.vertices_cylinder_16 * np.array([radius, height, radius, 1.0], dtype=np.float32)
+        self.vertices[a:b, :] = np.matmul(cylinder_vertices, np.transpose(transform))
+        self.normals[a:b, :] = np.matmul(self.normals_cylinder_16, np.transpose(transform[0:3, 0:3]))
+        self.colors[a:b, :] = colorRGBA
+        self.num_vertices = copy.copy(b)
+
+    def add_cylinder32(self, transform, height, radius, colorRGBA):
+
+        # For simplicity
+        a = self.num_vertices
+        b = a + self.vertices_cylinder_32.shape[0]
+
+        cylinder_vertices = self.vertices_cylinder_32 * np.array([radius, height, radius, 1.0], dtype=np.float32)
+        self.vertices[a:b, :] = np.matmul(cylinder_vertices, np.transpose(transform))
+        self.normals[a:b, :] = np.matmul(self.normals_cylinder_32, np.transpose(transform[0:3, 0:3]))
+        self.colors[a:b, :] = colorRGBA
+        self.num_vertices = copy.copy(b)

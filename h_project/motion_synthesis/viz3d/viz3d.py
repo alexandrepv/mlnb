@@ -64,9 +64,10 @@ class Viz3D:
 
     def initialise(self, window_width=1280, window_height=720, window_title='Vis3D'):
 
-        # Initialize GLFW
         if not glfw.init():
             return False
+
+        glfw.window_hint(glfw.SAMPLES, 4)
 
         self.window_glfw = glfw.create_window(window_width, window_height, window_title, None, None)
         if not self.window_glfw:
@@ -88,9 +89,12 @@ class Viz3D:
 
         # Depth test
         glEnable(GL_DEPTH_TEST)
+        glEnable(GL_MULTISAMPLE);
         glDepthMask(GL_TRUE)
         glDepthFunc(GL_LESS)
-        glClearColor(0.0, 0.0, 0.0, 1.0)
+        glClearColor(default.BACKGROUND_COLOR[0],
+                     default.BACKGROUND_COLOR[1],
+                     default.BACKGROUND_COLOR[2], 1)
         glClearDepth(1.0)
 
         #glEnable(GL_BLEND)
@@ -107,7 +111,6 @@ class Viz3D:
         self.time_past = time_present
 
         # Render 3D solids
-
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         self.main_camera.update(self.elapsed_time)
@@ -245,7 +248,6 @@ class Viz3D:
 
     def _init_mesh(self):
 
-
         #self.mws_gl_ebo_indices = glGenBuffers(1)
         #glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.mws_gl_ebo_indices)
         #glBufferData(GL_ELEMENT_ARRAY_BUFFER, self.mws.num_indices * 4, None, GL_STATIC_DRAW)
@@ -313,22 +315,30 @@ class Viz3D:
             elif action == glfw.RELEASE:
                 self.main_camera.move_right = False
 
-        if key == glfw.KEY_SPACE:
+        if key == glfw.KEY_E:
             if action == glfw.PRESS:
                 self.main_camera.move_up = True
             elif action == glfw.RELEASE:
                 self.main_camera.move_up = False
 
-        if key == glfw.KEY_LEFT_CONTROL:
+        if key == glfw.KEY_Q:
             if action == glfw.PRESS:
                 self.main_camera.move_down = True
             elif action == glfw.RELEASE:
                 self.main_camera.move_down = False
 
+        # Run!
+        if key == glfw.KEY_LEFT_SHIFT:
+            if action == glfw.PRESS:
+                self.main_camera.movement_speed = default.CAMERA_MOVEMENT_SPEED * 4
+            elif action == glfw.RELEASE:
+                self.main_camera.movement_speed = default.CAMERA_MOVEMENT_SPEED
+
     def mouse_enter_window_callback(self, window, enter):
 
-        if enter == glfw.ENT:
-            self.mouse_pos_past[:] = glfw.get_cursor_pos(window)
+        #if enter == glfw.ENT:
+        #    self.mouse_pos_past[:] = glfw.get_cursor_pos(window)
+        pass
 
     def mouse_button_callback(self, window,  button, action, mods):
 

@@ -50,9 +50,9 @@ class Camera:
         if self.move_right:
             self.position += self.right_vector * delta
         if self.move_up:
-            self.position += default.CAMERA_UP * delta
+            self.position += default.CAMERA_WORLD_UP * delta
         if self.move_down:
-            self.position -= default.CAMERA_UP * delta
+            self.position -= default.CAMERA_WORLD_UP * delta
         if self.move_forward:
             self.position += self.front_vector * delta
         if self.move_back:
@@ -72,8 +72,6 @@ class Camera:
 
         self.view_projection_matrix = self.view_matrix @ self.projection_matrix
 
-        g = 0
-
     def process_mouse_movement(self, delta_x, delta_y):
 
         self.yaw_radians += delta_x * self.mouse_sensitivity
@@ -87,7 +85,6 @@ class Camera:
         #rot_x = pyrr.matrix44.create_from_x_rotation(delta_y * self.mouse_sensitivity*0.1)
         #rot_y = pyrr.matrix44.create_from_y_rotation(-delta_x * self.mouse_sensitivity*0.1)
         #self.front_vector = np.matmul((rot_x @ rot_y)[0:3, 0:3], self.front_vector)
-
 
         self.front_vector[0] = np.cos(self.yaw_radians) * np.cos(self.pitch_radians)
         self.front_vector[1] = np.sin(self.pitch_radians)
