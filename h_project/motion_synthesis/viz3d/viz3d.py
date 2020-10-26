@@ -67,6 +67,7 @@ class Viz3D:
         if not glfw.init():
             return False
 
+        # Anti-aliasing
         glfw.window_hint(glfw.SAMPLES, 4)
 
         self.window_glfw = glfw.create_window(window_width, window_height, window_title, None, None)
@@ -206,7 +207,7 @@ class Viz3D:
         glUniformMatrix4fv(self.mws_gl_uniform_view_projection, 1, GL_FALSE, self.main_camera.view_projection_matrix)
 
         # DEBUG Light
-        light_pos = np.array([1.2, 1, 2], dtype=np.float32)
+        light_pos = np.array([1.2, 2, 2], dtype=np.float32)
         light_diffuse = np.array([1, 1, 1], dtype=np.float32)
         light_ambient = np.array([0.2, 0.2, 0.2], dtype=np.float32)
         glUniform3fv(self.mws_gl_uniform_light_position, 1, light_pos)

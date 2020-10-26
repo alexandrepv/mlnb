@@ -25,7 +25,8 @@ if __name__ == "__main__":
         #app.mws.add_cuboid(transform, 1.0, 1.0, 1.0, color)
         app.mww.add_axes(transform=identity, axis_size=3)
         #app.mww.add_lines(transform=identity, vertices=points, colorRGBA=color2)
-        app.mws.add_cylinder32(transform=transform, height=0.25, radius=1, colorRGBA=color)
+        #app.mws.add_cylinder32(transform=transform, height=0.25, radius=1, colorRGBA=color)
+        app.mws.add_sphere_3(transform=transform, radius=0.5, colorRGBA=color)
         app.mww.add_xz_grid()
 
     app.shutdown()
