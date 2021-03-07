@@ -25,7 +25,7 @@ if __name__ == '__main__':
         headers = {'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36'}
         url = args.favorites_link
         r = requests.get(url, headers)
-        soup = BeautifulSoup(r.content, 'html5lib')
+        soup = BeautifulSoup(r.content, 'html.parser')
         soup.find('input', attrs={'name':'username_or_email', })
         print(r.content)
 
