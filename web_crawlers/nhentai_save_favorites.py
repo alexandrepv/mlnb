@@ -63,16 +63,8 @@ def download_manga(nhentai_id: int,
 
         soup = BeautifulSoup(r.content, 'lxml')
 
-        # Check if manga was downloaded successfully
-        target_output_folder = os.path.join(output_directory, f'nhentai_{nhentai_id}')
-        if os.path.exists(target_output_folder) and manga_is_complete(target_output_folder):
-            result['nhentai_id'] = nhentai_id
-            result['code'] = RESPONSE_EXISTS
-            result['description'] = 'Already downloaded. '
-            result['elapsed_time'] = elapsed_time
-            return result
-
         # Create new folder for the manga
+        target_output_folder = os.path.join(output_directory, f'nhentai_{nhentai_id}')
         os.makedirs(target_output_folder, exist_ok=True)
 
         # ======= Get manga info ========
@@ -195,15 +187,23 @@ def download_favorites(output_directory: str, session_cookie_content: str) -> No
                                  cookies={'sessionid': session_cookie_content})
                 soup = BeautifulSoup(r.content, 'lxml')
                 fav_page_contents = soup.find('div', attrs={'class': 'container', 'id': 'favcontainer'})
-                if fav_page_contents is None:
+                page_manga_list = fav_page_contents.find_all('div', attrs={'class': 'gallery-favorite'})
+                if len(page_manga_list) == 0:
                     print(f' > Done')
                     break
-                page_manga_list = fav_page_contents.find_all('div', attrs={'class': 'gallery-favorite'})
+                manga_ids_to_download_list = []
+
+                for manga in page_manga_list:
+                    nhentai_id = manga.attrs['data-id']
+                    target_output_folder = os.path.join(output_directory, f'nhentai_{nhentai_id}')
+                    if not os.path.exists(target_output_folder) or not manga_is_complete(target_output_folder):
+                        manga_ids_to_download_list.append(nhentai_id)
 
                 print(f' > Starting favorites page {fav_page_number}')
+                print(f' > {len(manga_ids_to_download_list)} New IDs to download: {manga_ids_to_download_list}')
                 fav_page_results = {executor.submit(download_manga,
-                                                    manga.attrs['data-id'],
-                                                    output_directory): manga for manga in page_manga_list}
+                                                    nhentai_id,
+                                                    output_directory): nhentai_id for nhentai_id in manga_ids_to_download_list}
                 for future in concurrent.futures.as_completed(fav_page_results):
                     result = future.result()
                     results_list.append(result)
@@ -216,9 +216,8 @@ def download_favorites(output_directory: str, session_cookie_content: str) -> No
     already_download_list = [manga for manga in results_list if manga['code'] == RESPONSE_EXISTS]
     failed_list = [manga for manga in results_list if manga['code'] == RESPONSE_FAILED]
 
-    print(f' > Total Elapsed time: {time_stop-time_start:.1} seconds')
+    print(f' > Total Elapsed time: {time_stop-time_start:.1f} seconds')
     print(f' > {len(successful_list)} New mangas downloaded')
-    print(f' > {len(already_download_list)} Mangas already existed')
     print(f' > {len(failed_list)} Failed during download\n')
 
     print('[ Failed List ]')
